@@ -90,6 +90,71 @@ export function getImagesFromHTML(html: string, baseURL: string) : string[]
 }
 
 
+export async function getHTML(url: string)
+{
+    try {
+        const res = await fetch(url, {
+            headers: { "User-Agent": "MyApp/1.0" },
+        });
+
+        if (res.status >= 400) {
+            console.log(`bad status: ${res.status}`);
+            return;
+        }
+
+        const contentType = res.headers.get("content-type");
+        if (!contentType || !contentType.includes("text/html")) {
+            console.log(`wrong content type: ${contentType}`);
+            return;
+        }
+
+        return await res.text();
+    } catch (err) {
+        console.log(`request failed: ${(err as Error).message}`);
+    }
+}
+
+
+export async function crawlPage(
+  baseURL: string,
+  currentURL: string,
+  pages: Record<string, number>,
+)
+{
+    const baseHostName = new URL(baseURL).hostname;
+    const currentHostName = new URL(currentURL).hostname;
+
+    if (baseHostName != currentHostName)
+    {
+        return pages;
+    }
+        
+    const normURL = normalizeURL(currentURL);
+
+    if (normURL in pages)
+    {
+        pages[normURL] = pages[normURL] + 1;
+        return pages;
+    }
+
+    pages[normURL] = 1;
+
+    const currentHTML = (await getHTML("https://" + normURL)) || "";
+    console.log("Currently crawling: " + normURL);
+    console.log(currentHTML);
+
+    const urlsInPage = getURLsFromHTML(currentHTML, currentURL);
+
+    for (const lurl of urlsInPage)
+    {
+        await crawlPage(baseURL, lurl, pages);
+    }
+
+    return pages;
+}
+
+
+
 export type ExtractedPageData = {
     url : string;
     heading : string;
@@ -97,6 +162,7 @@ export type ExtractedPageData = {
     outgoing_links: string[];
     image_urls: string[];
 };
+
 
 export function extractPageData(html: string, pageURL: string): ExtractedPageData
 {
