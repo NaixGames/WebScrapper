@@ -1,23 +1,25 @@
 import { argv } from"node:process";
-import { crawlPage } from "./crawl.js";
+import { crawlSiteAsync } from "./crawl.js";
 
 async function main() 
 {
-    if (argv.length > 3)
+    if (argv.length > 5)
     {
         console.log("Too many args");
         process.exit(1);
     }
-    if (argv.length < 3)
+    if (argv.length < 5)
     {
         console.log("Missing args");
         process.exit(1);
     }
 
     const baseURL = argv[2];
+    const conc = Number(argv[3]);
+    const maxpages = Number(argv[4]);
     console.log("Starting crawl with url " + baseURL);
 
-    const crawlResult = await crawlPage(baseURL, baseURL, {});
+    const crawlResult = await crawlSiteAsync(baseURL, conc, maxpages);
 
     console.log("Crawled frequency:");
     for (const cPage in crawlResult)

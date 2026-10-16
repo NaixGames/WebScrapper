@@ -1,5 +1,6 @@
 import { URL } from "node:url";
 import { JSDOM } from 'jsdom'
+import { ConcurrentCrawler } from "./ConcurrentCrawler";
 
 export function normalizeURL(inputUrl : string)
 {
@@ -13,6 +14,7 @@ export function normalizeURL(inputUrl : string)
     return myURL.host + pathName;
 }
 
+
 export function getHeadingFromHTML(html: string) : string
 {
     const jsdom = new JSDOM(html);
@@ -24,6 +26,7 @@ export function getHeadingFromHTML(html: string) : string
     }
     return "";
 }
+
 
 export function getFirstParagraphFromHTML(html: string) : string
 {
@@ -65,6 +68,7 @@ export function getURLsFromHTML(html: string, baseURL: string): string[]
     return answer;
 }
 
+
 export function getImagesFromHTML(html: string, baseURL: string) : string[]
 {
     const jsdom = new JSDOM(html);
@@ -90,70 +94,12 @@ export function getImagesFromHTML(html: string, baseURL: string) : string[]
 }
 
 
-export async function getHTML(url: string)
+export async function crawlSiteAsync(baseUrl: string, concurrency: number, maxPages: number)
 {
-    try {
-        const res = await fetch(url, {
-            headers: { "User-Agent": "MyApp/1.0" },
-        });
-
-        if (res.status >= 400) {
-            console.log(`bad status: ${res.status}`);
-            return;
-        }
-
-        const contentType = res.headers.get("content-type");
-        if (!contentType || !contentType.includes("text/html")) {
-            console.log(`wrong content type: ${contentType}`);
-            return;
-        }
-
-        return await res.text();
-    } catch (err) {
-        console.log(`request failed: ${(err as Error).message}`);
-    }
+    const ccrawler = new ConcurrentCrawler(baseUrl, concurrency, maxPages);
+    await ccrawler.crawl();
+    return ccrawler.pages;
 }
-
-
-export async function crawlPage(
-  baseURL: string,
-  currentURL: string,
-  pages: Record<string, number>,
-)
-{
-    const baseHostName = new URL(baseURL).hostname;
-    const currentHostName = new URL(currentURL).hostname;
-
-    if (baseHostName != currentHostName)
-    {
-        return pages;
-    }
-        
-    const normURL = normalizeURL(currentURL);
-
-    if (normURL in pages)
-    {
-        pages[normURL] = pages[normURL] + 1;
-        return pages;
-    }
-
-    pages[normURL] = 1;
-
-    const currentHTML = (await getHTML("https://" + normURL)) || "";
-    console.log("Currently crawling: " + normURL);
-    console.log(currentHTML);
-
-    const urlsInPage = getURLsFromHTML(currentHTML, currentURL);
-
-    for (const lurl of urlsInPage)
-    {
-        await crawlPage(baseURL, lurl, pages);
-    }
-
-    return pages;
-}
-
-
 
 export type ExtractedPageData = {
     url : string;
