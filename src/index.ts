@@ -1,5 +1,6 @@
 import { argv } from"node:process";
 import { crawlSiteAsync } from "./crawl.js";
+import { writeJSONReport } from "./report.js";
 
 async function main() 
 {
@@ -21,11 +22,10 @@ async function main()
 
     const crawlResult = await crawlSiteAsync(baseURL, conc, maxpages);
 
-    console.log("Crawled frequency:");
-    for (const cPage in crawlResult)
-    {
-        console.log(cPage + " : " + String(crawlResult[cPage]));
-    }
+    console.log("Finished crawling.");
+
+    writeJSONReport(crawlResult, "report.json");
+
     process.exit(0);
 }
 
